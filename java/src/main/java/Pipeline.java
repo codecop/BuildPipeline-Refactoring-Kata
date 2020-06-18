@@ -20,15 +20,13 @@ public class Pipeline {
     }
 
     public void run(Project project) {
+        List<Step> steps = Arrays.asList(//
+                new TestStep(log), //
+                new DeployStep(log), //
+                new EmailStep(config, emailer, log));
+
         BuildResults results = new BuildResults();
-        List<Step> steps = Arrays.asList(
-                new TestStep(log),
-                new DeployStep(log),
-                new EmailStep(config, emailer, log)
-                );
-        steps.get(0).handle(project, results);
-        steps.get(1).handle(project, results);
-        steps.get(2).handle(project, results);
+        steps.stream().forEach(step -> step.handle(project, results));
     }
 
     static class BuildResults {
