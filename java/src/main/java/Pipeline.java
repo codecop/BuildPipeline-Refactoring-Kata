@@ -73,6 +73,8 @@ public class Pipeline {
 
     static class TestStep implements BuildStep {
 
+        private static final String SUCCESS_KEY = "testsPassed";
+
         private final Logger log;
 
         public TestStep(Logger log) {
@@ -83,13 +85,12 @@ public class Pipeline {
         public void progress(Project project, BuildResults results) {
             if (!project.hasTests()) {
                 log.info("No tests");
-                results.reportSuccess("testsPassed", true);
+                results.reportSuccess(SUCCESS_KEY, true);
                 return;
             }
 
-            boolean testsPassed;
-            testsPassed = runTests(project);
-            results.reportSuccess("testsPassed", testsPassed);
+            boolean testsPassed = runTests(project);
+            results.reportSuccess(SUCCESS_KEY, testsPassed);
         }
 
         private boolean runTests(Project project) {
@@ -106,6 +107,8 @@ public class Pipeline {
 
     static class DeployStep implements BuildStep {
 
+        private static final String SUCCESS_KEY = "deploySuccessful";
+        
         private final Logger log;
 
         public DeployStep(Logger log) {
@@ -119,7 +122,7 @@ public class Pipeline {
             }
 
             boolean deploySuccessful = deploy(project);
-            results.reportSuccess("deploySuccessful", deploySuccessful);
+            results.reportSuccess(SUCCESS_KEY, deploySuccessful);
         }
 
         private boolean deploy(Project project) {
