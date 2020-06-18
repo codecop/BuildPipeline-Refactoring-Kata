@@ -76,15 +76,13 @@ public class Pipeline {
         }
 
         private boolean deploy(Project project) {
-            boolean deploySuccessful;
             if ("success".equals(project.deploy())) {
                 log.info("Deployment successful");
-                deploySuccessful = true;
-            } else {
-                log.error("Deployment failed");
-                deploySuccessful = false;
+                return true;
             }
-            return deploySuccessful;
+            
+            log.error("Deployment failed");
+            return false;
         }
 
     }
