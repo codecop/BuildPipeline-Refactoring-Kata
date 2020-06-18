@@ -20,14 +20,9 @@ public class Pipeline {
     }
 
     public void run(Project project) {
-        List<Step> steps = Arrays.asList(//
-                new TestStep(log), //
-                new DeployStep(log), //
-                config.sendEmailSummary() ? new EmailStep(emailer, log) : new DisabledEmailStep(log) //
-        );
-
+        BuildSteps steps = new BuildSteps(config, emailer, log);
         BuildResults results = new BuildResults();
-        steps.stream().forEach(step -> step.handle(project, results));
+        steps.handle(project, results);
     }
 
     static class BuildResults {
@@ -39,6 +34,25 @@ public class Pipeline {
 
         public boolean isSuccess(String key) {
             return results.containsKey(key) && results.get(key);
+        }
+
+    }
+
+    static class BuildSteps implements Step {
+
+        private final List<Step> steps;
+
+        public BuildSteps(Config config, Emailer emailer, Logger log) {
+            steps = Arrays.asList(//
+                    new TestStep(log), //
+                    new DeployStep(log), //
+                    config.sendEmailSummary() ? new EmailStep(emailer, log) : new DisabledEmailStep(log) //
+            );
+        }
+
+        @Override
+        public void handle(Project project, BuildResults results) {
+            steps.stream().forEach(step -> step.handle(project, results));
         }
 
     }
