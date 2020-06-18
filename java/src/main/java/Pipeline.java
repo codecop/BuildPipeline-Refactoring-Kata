@@ -38,16 +38,24 @@ public class Pipeline {
 
     }
 
-    static class BuildSteps implements Step {
-
-        private final List<Step> steps;
+    static class BuildSteps extends CompositeBuildSteps {
 
         public BuildSteps(Config config, Emailer emailer, Logger log) {
-            steps = Arrays.asList(//
+            super(//
                     new TestStep(log), //
                     new DeployStep(log), //
                     config.sendEmailSummary() ? new EmailStep(emailer, log) : new DisabledEmailStep(log) //
             );
+        }
+
+    }
+
+    static class CompositeBuildSteps implements BuildStep {
+
+        private final List<BuildStep> steps;
+
+        public CompositeBuildSteps(BuildStep... steps) {
+            this.steps = Arrays.asList(steps);
         }
 
         @Override
@@ -57,13 +65,13 @@ public class Pipeline {
 
     }
 
-    interface Step {
+    interface BuildStep {
 
         void handle(Project project, BuildResults results);
 
     }
 
-    static class TestStep implements Step {
+    static class TestStep implements BuildStep {
 
         private final Logger log;
 
@@ -95,7 +103,7 @@ public class Pipeline {
 
     }
 
-    static class DeployStep implements Step {
+    static class DeployStep implements BuildStep {
 
         private final Logger log;
 
@@ -126,7 +134,7 @@ public class Pipeline {
 
     }
 
-    static class EmailStep implements Step {
+    static class EmailStep implements BuildStep {
 
         private final Emailer emailer;
         private final Logger log;
@@ -155,7 +163,7 @@ public class Pipeline {
         }
     }
 
-    static class DisabledEmailStep implements Step {
+    static class DisabledEmailStep implements BuildStep {
 
         private final Logger log;
 
