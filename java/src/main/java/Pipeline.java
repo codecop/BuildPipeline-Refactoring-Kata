@@ -23,7 +23,8 @@ public class Pipeline {
         List<Step> steps = Arrays.asList(//
                 new TestStep(log), //
                 new DeployStep(log), //
-                new EmailStep(config, emailer, log));
+                config.sendEmailSummary() ? new EmailStep(emailer, log) : new DisabledEmailStep(log) //
+        );
 
         BuildResults results = new BuildResults();
         steps.stream().forEach(step -> step.handle(project, results));
@@ -36,7 +37,7 @@ public class Pipeline {
             results.put(key, testsPassed);
         }
 
-        public boolean isSucces(String key) {
+        public boolean isSuccess(String key) {
             return results.containsKey(key) && results.get(key);
         }
 
@@ -91,7 +92,7 @@ public class Pipeline {
         @Override
         public void handle(Project project, BuildResults results) {
             boolean deploySuccessful;
-            if (results.isSucces("testsPassed")) {
+            if (results.isSuccess("testsPassed")) {
                 deploySuccessful = deploy(project);
             } else {
                 deploySuccessful = false;
@@ -113,23 +114,17 @@ public class Pipeline {
 
     static class EmailStep implements Step {
 
-        private final Config config;
         private final Emailer emailer;
         private final Logger log;
 
-        public EmailStep(Config config, Emailer emailer, Logger log) {
-            this.config = config;
+        public EmailStep(Emailer emailer, Logger log) {
             this.emailer = emailer;
             this.log = log;
         }
 
         @Override
         public void handle(@SuppressWarnings("unused") Project project, BuildResults results) {
-            if (config.sendEmailSummary()) {
-                sendEmails(results.isSucces("testsPassed"), results.isSucces("deploySuccessful"));
-            } else {
-                log.info("Email disabled");
-            }
+            sendEmails(results.isSuccess("testsPassed"), results.isSuccess("deploySuccessful"));
         }
 
         private void sendEmails(boolean testsPassed, boolean deploySuccessful) {
@@ -144,5 +139,20 @@ public class Pipeline {
                 emailer.send("Tests failed");
             }
         }
+    }
+
+    static class DisabledEmailStep implements Step {
+
+        private final Logger log;
+
+        public DisabledEmailStep(Logger log) {
+            this.log = log;
+        }
+
+        @Override
+        public void handle(@SuppressWarnings("unused") Project project, BuildResults results) {
+            log.info("Email disabled");
+        }
+
     }
 }
