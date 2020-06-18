@@ -25,28 +25,6 @@ public class Pipeline {
         steps.progress(project, results);
     }
 
-    static class Success {
-        public final boolean wasSuccess;
-
-        public Success(boolean wasSuccess) {
-            this.wasSuccess = wasSuccess;
-        }
-
-        public void then(Runnable onSuccess, Runnable onFailure) {
-            if (wasSuccess) {
-                onSuccess.run();
-            } else {
-                onFailure.run();
-            }
-        }
-
-        public void then(Runnable onSuccess) {
-            then(onSuccess, () -> {
-                /* do nothing */ });
-        }
-
-    }
-
     static class BuildResults {
         private final Map<String, Boolean> results = new HashMap<>();
 
@@ -57,11 +35,6 @@ public class Pipeline {
         public boolean isSuccess(String key) {
             return results.containsKey(key) && results.get(key);
         }
-
-        public Success onSuccess(String key) {
-            return new Success(isSuccess(key));
-        }
-
     }
 
     static class BuildSteps extends CompositeBuildSteps {
@@ -173,9 +146,9 @@ public class Pipeline {
 
         @Override
         public void progress(@SuppressWarnings("unused") Project project, BuildResults results) {
-            boolean testsPassed = results.isSuccess("testsPassed");
-
             log.info("Sending email");
+
+            boolean testsPassed = results.isSuccess("testsPassed");
             if (!testsPassed) {
                 emailer.send("Tests failed");
                 return;
@@ -186,16 +159,11 @@ public class Pipeline {
         }
 
         private void mailIt(boolean deploySuccessful) {
-            Success onDeploySuccess = new Success(deploySuccessful);
-            onDeploySuccess.then(this::mailDeploySuccess, this::mailDeployFailed);
-        }
-
-        private void mailDeploySuccess() {
-            emailer.send("Deployment completed successfully");
-        }
-
-        private void mailDeployFailed() {
-            emailer.send("Deployment failed");
+            if (deploySuccessful) {
+                emailer.send("Deployment completed successfully");
+            } else {
+                emailer.send("Deployment failed");
+            }
         }
     }
 
