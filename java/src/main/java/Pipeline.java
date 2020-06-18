@@ -19,9 +19,13 @@ public class Pipeline {
 
     public void run(Project project) {
         Map<String, Boolean> results = new HashMap<>();
-        boolean testsPassed;
-        boolean deploySuccessful;
+        handleTests(project, results);
+        handleDeployment(project, results);
+        handleEmail(project, results);
+    }
 
+    private void handleTests(Project project, Map<String, Boolean> results) {
+        boolean testsPassed;
         if (project.hasTests()) {
             testsPassed = runTests(project);
         } else {
@@ -29,14 +33,19 @@ public class Pipeline {
             testsPassed = true;
         }
         results.put("testsPassed", testsPassed);
+    }
 
+    private void handleDeployment(Project project, Map<String, Boolean> results) {
+        boolean deploySuccessful;
         if (results.get("testsPassed")) {
             deploySuccessful = deploy(project);
         } else {
             deploySuccessful = false;
         }
         results.put("deploySuccessful", deploySuccessful);
+    }
 
+    private void handleEmail(Project project, Map<String, Boolean> results) {
         if (config.sendEmailSummary()) {
             sendEmails(results.get("testsPassed"), results.get("deploySuccessful"));
         } else {
