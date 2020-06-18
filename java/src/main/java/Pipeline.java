@@ -18,10 +18,23 @@ public class Pipeline {
     }
 
     public void run(Project project) {
-        Map<String, Boolean> results = new HashMap<>();
+        BuildResults results = new BuildResults();
         new TestStep(log).handleTests(project, results);
         new DeployStep(log).handleDeployment(project, results);
         new EmailStep(config, emailer, log).handleEmail(project, results);
+    }
+
+    static class BuildResults {
+        private final Map<String, Boolean> results = new HashMap<>();
+
+        public void put(String key, boolean testsPassed) {
+            results.put(key, testsPassed);
+
+        }
+
+        public boolean get(String key) {
+            return results.containsKey(key) && results.get(key);
+        }
     }
 
     static class TestStep {
@@ -32,7 +45,7 @@ public class Pipeline {
             this.log = log;
         }
 
-        public void handleTests(Project project, Map<String, Boolean> results) {
+        public void handleTests(Project project, BuildResults results) {
             boolean testsPassed;
             if (project.hasTests()) {
                 testsPassed = runTests(project);
@@ -65,7 +78,7 @@ public class Pipeline {
             this.log = log;
         }
 
-        public void handleDeployment(Project project, Map<String, Boolean> results) {
+        public void handleDeployment(Project project, BuildResults results) {
             boolean deploySuccessful;
             if (results.get("testsPassed")) {
                 deploySuccessful = deploy(project);
@@ -80,7 +93,7 @@ public class Pipeline {
                 log.info("Deployment successful");
                 return true;
             }
-            
+
             log.error("Deployment failed");
             return false;
         }
@@ -99,7 +112,7 @@ public class Pipeline {
             this.log = log;
         }
 
-        public void handleEmail(Project project, Map<String, Boolean> results) {
+        public void handleEmail(Project project, BuildResults results) {
             if (config.sendEmailSummary()) {
                 sendEmails(results.get("testsPassed"), results.get("deploySuccessful"));
             } else {
