@@ -19,25 +19,30 @@ public class Pipeline {
 
     public void run(Project project) {
         BuildResults results = new BuildResults();
-        new TestStep(log).handleTests(project, results);
-        new DeployStep(log).handleDeployment(project, results);
-        new EmailStep(config, emailer, log).handleEmail(project, results);
+        new TestStep(log).handle(project, results);
+        new DeployStep(log).handle(project, results);
+        new EmailStep(config, emailer, log).handle(project, results);
     }
 
     static class BuildResults {
         private final Map<String, Boolean> results = new HashMap<>();
 
-        public void put(String key, boolean testsPassed) {
-            results.put(key, testsPassed);
-
+        public boolean isSucces(String key) {
+            return results.containsKey(key) && results.get(key);
         }
 
-        public boolean get(String key) {
-            return results.containsKey(key) && results.get(key);
+        public void reportSuccess(String key, boolean testsPassed) {
+            results.put(key, testsPassed);
         }
     }
 
-    static class TestStep {
+    interface Step {
+
+        void handle(Project project, BuildResults results);
+
+    }
+
+    static class TestStep implements Step {
 
         private final Logger log;
 
@@ -45,7 +50,8 @@ public class Pipeline {
             this.log = log;
         }
 
-        public void handleTests(Project project, BuildResults results) {
+        @Override
+        public void handle(Project project, BuildResults results) {
             boolean testsPassed;
             if (project.hasTests()) {
                 testsPassed = runTests(project);
@@ -53,24 +59,22 @@ public class Pipeline {
                 log.info("No tests");
                 testsPassed = true;
             }
-            results.put("testsPassed", testsPassed);
+            results.reportSuccess("testsPassed", testsPassed);
         }
 
         private boolean runTests(Project project) {
-            boolean testsPassed;
             if ("success".equals(project.runTests())) {
                 log.info("Tests passed");
-                testsPassed = true;
-            } else {
-                log.error("Tests failed");
-                testsPassed = false;
+                return true;
             }
-            return testsPassed;
+
+            log.error("Tests failed");
+            return false;
         }
 
     }
 
-    static class DeployStep {
+    static class DeployStep implements Step {
 
         private final Logger log;
 
@@ -78,14 +82,15 @@ public class Pipeline {
             this.log = log;
         }
 
-        public void handleDeployment(Project project, BuildResults results) {
+        @Override
+        public void handle(Project project, BuildResults results) {
             boolean deploySuccessful;
-            if (results.get("testsPassed")) {
+            if (results.isSucces("testsPassed")) {
                 deploySuccessful = deploy(project);
             } else {
                 deploySuccessful = false;
             }
-            results.put("deploySuccessful", deploySuccessful);
+            results.reportSuccess("deploySuccessful", deploySuccessful);
         }
 
         private boolean deploy(Project project) {
@@ -100,7 +105,7 @@ public class Pipeline {
 
     }
 
-    static class EmailStep {
+    static class EmailStep implements Step {
 
         private final Config config;
         private final Emailer emailer;
@@ -112,9 +117,10 @@ public class Pipeline {
             this.log = log;
         }
 
-        public void handleEmail(Project project, BuildResults results) {
+        @Override
+        public void handle(@SuppressWarnings("unused") Project project, BuildResults results) {
             if (config.sendEmailSummary()) {
-                sendEmails(results.get("testsPassed"), results.get("deploySuccessful"));
+                sendEmails(results.isSucces("testsPassed"), results.isSucces("deploySuccessful"));
             } else {
                 log.info("Email disabled");
             }
