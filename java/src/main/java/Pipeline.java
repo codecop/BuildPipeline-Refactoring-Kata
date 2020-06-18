@@ -1,4 +1,6 @@
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import dependencies.Config;
@@ -19,21 +21,27 @@ public class Pipeline {
 
     public void run(Project project) {
         BuildResults results = new BuildResults();
-        new TestStep(log).handle(project, results);
-        new DeployStep(log).handle(project, results);
-        new EmailStep(config, emailer, log).handle(project, results);
+        List<Step> steps = Arrays.asList(
+                new TestStep(log),
+                new DeployStep(log),
+                new EmailStep(config, emailer, log)
+                );
+        steps.get(0).handle(project, results);
+        steps.get(1).handle(project, results);
+        steps.get(2).handle(project, results);
     }
 
     static class BuildResults {
         private final Map<String, Boolean> results = new HashMap<>();
 
+        public void reportSuccess(String key, boolean testsPassed) {
+            results.put(key, testsPassed);
+        }
+
         public boolean isSucces(String key) {
             return results.containsKey(key) && results.get(key);
         }
 
-        public void reportSuccess(String key, boolean testsPassed) {
-            results.put(key, testsPassed);
-        }
     }
 
     interface Step {
