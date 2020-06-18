@@ -24,7 +24,7 @@ public class Pipeline {
         new EmailStep(config, emailer, log).handleEmail(project, results);
     }
 
-    class TestStep {
+    static class TestStep {
 
         private final Logger log;
 
@@ -57,10 +57,12 @@ public class Pipeline {
 
     }
 
-    class DeployStep {
+    static class DeployStep {
+
+        private final Logger log;
 
         public DeployStep(Logger log) {
-            // TODO Auto-generated constructor stub
+            this.log = log;
         }
 
         public void handleDeployment(Project project, Map<String, Boolean> results) {
@@ -87,10 +89,16 @@ public class Pipeline {
 
     }
 
-    class EmailStep {
+    static class EmailStep {
+
+        private final Config config;
+        private final Emailer emailer;
+        private final Logger log;
 
         public EmailStep(Config config, Emailer emailer, Logger log) {
-            // TODO Auto-generated constructor stub
+            this.config = config;
+            this.emailer = emailer;
+            this.log = log;
         }
 
         public void handleEmail(Project project, Map<String, Boolean> results) {
