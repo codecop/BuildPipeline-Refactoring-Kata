@@ -15,22 +15,33 @@ public class Pipeline {
     }
 
     public void run(Project project) {
-        boolean testsPassed;
-        boolean deploySuccessful;
+        boolean testsPassed = handleTests(project);
+        boolean deploySuccessful = handleDeployment(project, testsPassed);
+        handleEmail(testsPassed, deploySuccessful);
+    }
 
+    private boolean handleTests(Project project) {
+        boolean testsPassed;
         if (project.hasTests()) {
             testsPassed = runTests(project);
         } else {
             log.info("No tests");
             testsPassed = true;
         }
+        return testsPassed;
+    }
 
+    private boolean handleDeployment(Project project, boolean testsPassed) {
+        boolean deploySuccessful;
         if (testsPassed) {
             deploySuccessful = deploy(project);
         } else {
             deploySuccessful = false;
         }
+        return deploySuccessful;
+    }
 
+    private void handleEmail(boolean testsPassed, boolean deploySuccessful) {
         if (config.sendEmailSummary()) {
             sendEmails(testsPassed, deploySuccessful);
         } else {
