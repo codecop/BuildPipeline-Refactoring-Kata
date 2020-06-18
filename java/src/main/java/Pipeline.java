@@ -22,7 +22,7 @@ public class Pipeline {
     public void run(Project project) {
         BuildSteps steps = new BuildSteps(config, emailer, log);
         BuildResults results = new BuildResults();
-        steps.handle(project, results);
+        steps.progress(project, results);
     }
 
     static class BuildResults {
@@ -59,15 +59,15 @@ public class Pipeline {
         }
 
         @Override
-        public void handle(Project project, BuildResults results) {
-            steps.stream().forEach(step -> step.handle(project, results));
+        public void progress(Project project, BuildResults results) {
+            steps.stream().forEach(step -> step.progress(project, results));
         }
 
     }
 
     interface BuildStep {
 
-        void handle(Project project, BuildResults results);
+        void progress(Project project, BuildResults results);
 
     }
 
@@ -80,14 +80,15 @@ public class Pipeline {
         }
 
         @Override
-        public void handle(Project project, BuildResults results) {
-            boolean testsPassed;
-            if (project.hasTests()) {
-                testsPassed = runTests(project);
-            } else {
+        public void progress(Project project, BuildResults results) {
+            if (!project.hasTests()) {
                 log.info("No tests");
-                testsPassed = true;
+                results.reportSuccess("testsPassed", true);
+                return;
             }
+
+            boolean testsPassed;
+            testsPassed = runTests(project);
             results.reportSuccess("testsPassed", testsPassed);
         }
 
@@ -112,13 +113,12 @@ public class Pipeline {
         }
 
         @Override
-        public void handle(Project project, BuildResults results) {
-            boolean deploySuccessful;
-            if (results.isSuccess("testsPassed")) {
-                deploySuccessful = deploy(project);
-            } else {
-                deploySuccessful = false;
+        public void progress(Project project, BuildResults results) {
+            if (!results.isSuccess("testsPassed")) {
+                return;
             }
+
+            boolean deploySuccessful = deploy(project);
             results.reportSuccess("deploySuccessful", deploySuccessful);
         }
 
@@ -145,20 +145,21 @@ public class Pipeline {
         }
 
         @Override
-        public void handle(@SuppressWarnings("unused") Project project, BuildResults results) {
+        public void progress(@SuppressWarnings("unused") Project project, BuildResults results) {
             sendEmails(results.isSuccess("testsPassed"), results.isSuccess("deploySuccessful"));
         }
 
         private void sendEmails(boolean testsPassed, boolean deploySuccessful) {
             log.info("Sending email");
-            if (testsPassed) {
-                if (deploySuccessful) {
-                    emailer.send("Deployment completed successfully");
-                } else {
-                    emailer.send("Deployment failed");
-                }
-            } else {
+            if (!testsPassed) {
                 emailer.send("Tests failed");
+                return;
+            }
+
+            if (deploySuccessful) {
+                emailer.send("Deployment completed successfully");
+            } else {
+                emailer.send("Deployment failed");
             }
         }
     }
@@ -172,7 +173,8 @@ public class Pipeline {
         }
 
         @Override
-        public void handle(@SuppressWarnings("unused") Project project, BuildResults results) {
+        @SuppressWarnings("unused")
+        public void progress(Project project, BuildResults results) {
             log.info("Email disabled");
         }
 
