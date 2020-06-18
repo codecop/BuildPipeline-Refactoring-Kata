@@ -1,3 +1,6 @@
+import java.util.HashMap;
+import java.util.Map;
+
 import dependencies.Config;
 import dependencies.Emailer;
 import dependencies.Logger;
@@ -15,35 +18,27 @@ public class Pipeline {
     }
 
     public void run(Project project) {
-        boolean testsPassed = handleTests(project);
-        boolean deploySuccessful = handleDeployment(project, testsPassed);
-        handleEmail(testsPassed, deploySuccessful);
-    }
-
-    private boolean handleTests(Project project) {
+        Map<String, Boolean> results = new HashMap<>();
         boolean testsPassed;
+        boolean deploySuccessful;
+
         if (project.hasTests()) {
             testsPassed = runTests(project);
         } else {
             log.info("No tests");
             testsPassed = true;
         }
-        return testsPassed;
-    }
+        results.put("testsPassed", testsPassed);
 
-    private boolean handleDeployment(Project project, boolean testsPassed) {
-        boolean deploySuccessful;
-        if (testsPassed) {
+        if (results.get("testsPassed")) {
             deploySuccessful = deploy(project);
         } else {
             deploySuccessful = false;
         }
-        return deploySuccessful;
-    }
+        results.put("deploySuccessful", deploySuccessful);
 
-    private void handleEmail(boolean testsPassed, boolean deploySuccessful) {
         if (config.sendEmailSummary()) {
-            sendEmails(testsPassed, deploySuccessful);
+            sendEmails(results.get("testsPassed"), results.get("deploySuccessful"));
         } else {
             log.info("Email disabled");
         }
