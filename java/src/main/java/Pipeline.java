@@ -115,18 +115,17 @@ public class Pipeline {
                 return;
             }
 
-            boolean testsPassed = runTests(project);
+            boolean testsPassed = "success".equals(project.runTests());
+            logIt(testsPassed);
             results.reportSuccess(SUCCESS_KEY, testsPassed);
         }
 
-        private boolean runTests(Project project) {
-            if ("success".equals(project.runTests())) {
+        private void logIt(boolean testsSuccessful) {
+            if (testsSuccessful) {
                 log.info("Tests passed");
-                return true;
+            } else {
+                log.error("Tests failed");
             }
-
-            log.error("Tests failed");
-            return false;
         }
 
     }
@@ -147,18 +146,17 @@ public class Pipeline {
                 return;
             }
 
-            boolean deploySuccessful = deploy(project);
+            boolean deploySuccessful = "success".equals(project.deploy());
+            logIt(deploySuccessful);
             results.reportSuccess(SUCCESS_KEY, deploySuccessful);
         }
 
-        private boolean deploy(Project project) {
-            if ("success".equals(project.deploy())) {
+        private void logIt(boolean deploySuccessful) {
+            if (deploySuccessful) {
                 log.info("Deployment successful");
-                return true;
+            } else {
+                log.error("Deployment failed");
             }
-
-            log.error("Deployment failed");
-            return false;
         }
 
     }
@@ -175,17 +173,20 @@ public class Pipeline {
 
         @Override
         public void progress(@SuppressWarnings("unused") Project project, BuildResults results) {
-            sendEmails(results.isSuccess("testsPassed"), results.isSuccess("deploySuccessful"));
-        }
+            boolean testsPassed = results.isSuccess("testsPassed");
 
-        private void sendEmails(boolean testsPassed, boolean deploySuccessful1) {
             log.info("Sending email");
             if (!testsPassed) {
                 emailer.send("Tests failed");
                 return;
             }
 
-            Success onDeploySuccess = new Success(deploySuccessful1);
+            boolean deploySuccessful = results.isSuccess("deploySuccessful");
+            mailIt(deploySuccessful);
+        }
+
+        private void mailIt(boolean deploySuccessful) {
+            Success onDeploySuccess = new Success(deploySuccessful);
             onDeploySuccess.then(this::mailDeploySuccess, this::mailDeployFailed);
         }
 
