@@ -25,6 +25,28 @@ public class Pipeline {
         steps.progress(project, results);
     }
 
+    static class Success {
+        public final boolean wasSuccess;
+
+        public Success(boolean wasSuccess) {
+            this.wasSuccess = wasSuccess;
+        }
+
+        public void then(Runnable onSuccess, Runnable onFailure) {
+            if (wasSuccess) {
+                onSuccess.run();
+            } else {
+                onFailure.run();
+            }
+        }
+
+        public void then(Runnable onSuccess) {
+            then(onSuccess, () -> {
+                /* do nothing */ });
+        }
+
+    }
+
     static class BuildResults {
         private final Map<String, Boolean> results = new HashMap<>();
 
@@ -34,6 +56,10 @@ public class Pipeline {
 
         public boolean isSuccess(String key) {
             return results.containsKey(key) && results.get(key);
+        }
+
+        public Success onSuccess(String key) {
+            return new Success(isSuccess(key));
         }
 
     }
@@ -108,7 +134,7 @@ public class Pipeline {
     static class DeployStep implements BuildStep {
 
         private static final String SUCCESS_KEY = "deploySuccessful";
-        
+
         private final Logger log;
 
         public DeployStep(Logger log) {
@@ -152,18 +178,23 @@ public class Pipeline {
             sendEmails(results.isSuccess("testsPassed"), results.isSuccess("deploySuccessful"));
         }
 
-        private void sendEmails(boolean testsPassed, boolean deploySuccessful) {
+        private void sendEmails(boolean testsPassed, boolean deploySuccessful1) {
             log.info("Sending email");
             if (!testsPassed) {
                 emailer.send("Tests failed");
                 return;
             }
 
-            if (deploySuccessful) {
-                emailer.send("Deployment completed successfully");
-            } else {
-                emailer.send("Deployment failed");
-            }
+            Success onDeploySuccess = new Success(deploySuccessful1);
+            onDeploySuccess.then(this::mailDeploySuccess, this::mailDeployFailed);
+        }
+
+        private void mailDeploySuccess() {
+            emailer.send("Deployment completed successfully");
+        }
+
+        private void mailDeployFailed() {
+            emailer.send("Deployment failed");
         }
     }
 
