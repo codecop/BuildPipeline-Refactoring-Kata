@@ -19,12 +19,18 @@ public class Pipeline {
 
     public void run(Project project) {
         Map<String, Boolean> results = new HashMap<>();
-        new TestStep().handleTests(project, results);
-        new DeployStep().handleDeployment(project, results);
-        new EmailStep().handleEmail(project, results);
+        new TestStep(log).handleTests(project, results);
+        new DeployStep(log).handleDeployment(project, results);
+        new EmailStep(config, emailer, log).handleEmail(project, results);
     }
 
     class TestStep {
+
+        private final Logger log;
+
+        public TestStep(Logger log) {
+            this.log = log;
+        }
 
         public void handleTests(Project project, Map<String, Boolean> results) {
             boolean testsPassed;
@@ -53,6 +59,10 @@ public class Pipeline {
 
     class DeployStep {
 
+        public DeployStep(Logger log) {
+            // TODO Auto-generated constructor stub
+        }
+
         public void handleDeployment(Project project, Map<String, Boolean> results) {
             boolean deploySuccessful;
             if (results.get("testsPassed")) {
@@ -78,6 +88,10 @@ public class Pipeline {
     }
 
     class EmailStep {
+
+        public EmailStep(Config config, Emailer emailer, Logger log) {
+            // TODO Auto-generated constructor stub
+        }
 
         public void handleEmail(Project project, Map<String, Boolean> results) {
             if (config.sendEmailSummary()) {
