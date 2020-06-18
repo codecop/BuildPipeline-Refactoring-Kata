@@ -8,6 +8,13 @@ import dependencies.Emailer;
 import dependencies.Logger;
 import dependencies.Project;
 
+/*
+ * Total time 70'
+ * Not happy with the end result.
+ * There are still a lot of IFs. Technically I could remove them (using True/False functions)
+ * but that feels wrong die its complexity. This is a flow with decisions. 
+ */
+
 public class Pipeline {
     private final Config config;
     private final Emailer emailer;
@@ -20,6 +27,7 @@ public class Pipeline {
     }
 
     public void run(Project project) {
+        // TODO would move steps to constructor, but tests are set up differently
         BuildSteps steps = new BuildSteps(config, emailer, log);
         BuildResults results = new BuildResults();
         steps.progress(project, results);
